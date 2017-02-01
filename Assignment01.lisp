@@ -59,42 +59,50 @@
 ; Create a lisp function:
 ; - 	(if (not (null (cdr L)))
 (defun split (L)
-	(cond ((null L) (NIL NIL))
+	(cond 
+		((null L) (NIL NIL))
 		((null (cddr L)) (append (list (list (car L))) (list (cdr L))))
 		(T (let ((tuple (split (cddr L))))
-				(append (list (append (list (car L)) (car tuple))) (list (append (list (cadr L)) (cadr tuple))))
-			))
+				(append (list (append (list (car L)) (car tuple))) (list (append (list (cadr L)) (cadr tuple))))))
 	)
 )
 
-;QUESTION 6
-(defun subset-sum-check (S L)	
-	(cond 
-		; first condition is if the sum requested is zero then we can just return an empty list
-		((= S 0) T)
-		; second condition is if the list is empty then return nil
-		((and (null L) (not (= S 0))) '())
-		;third condition is check if the sum can be made by either including or excluding the element
-		(T (or (subset-sum S (cdr L)) (subset-sum (- S (car L)) (cdr L)))) 
-	)
-)
-
-(defun subset-sum (S L)	
+;Question 6
+(defun subsetsum (S L)	
 	(cond 
 		; first condition is if the sum requested is zero then we can just return an empty list
 		;((= S 0) '())
-		((= S 0) T)
+		((= S 0) '())
+		; if the amount is less than zero then this branch is false, since these are all positive numbers
+		((< S 0) NIL)
 		; second condition is if the list is empty then return nil
 		((and (null L) (not (= S 0))) '())
 		;third condition is check if the sum can be made by either including or excluding the element
-		((subset-sum (- S (car L)) (cdr L)) 
-			(if (not (= (- S (car L))))
-				((append (list (car L)) (subset-sum (- S (car L)) (cdr L))))
-			)
-		)
-		;((subset-sum S (cdr L)) (append '() (subset-sum S (cdr L))))
+		(T (or (subsetsum (- S (car L)) (cdr L)) (subsetsum S (cdr L))))
 	)
 )
 
 
-;QUESTION 6
+(defun subsetsum (S L)
+	(optimizedSubsetSum S (sort (copy-list L) #'<))
+)
+
+(defun optimizedSubsetSum (S L)	
+	(cond 
+		; First base case: The list is empty, therefore no elements to elimate remainder of sum.
+		((null L) NIL)
+		; Optimization base case: The current element being tested is greater than the sum. Therefore as this is sorted all those after must be greater as well.
+		((> (car L) S) NIL)
+		; Second base case: The current element being tested equals the current sum. Subset Found.
+		((= (car L) S) (list (car L)))
+		(T (let ((include (optimizedSubsetSum (- S (car L)) (cdr L)))
+					(exclude (optimizedSubsetSum S (cdr L))))
+				(cond
+					((not (null include)) (append (list (car L)) include))
+					((not (null exclude)) exclude)
+					(T NIL)
+				)
+			)
+		)
+	)
+)
