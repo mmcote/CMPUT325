@@ -5,19 +5,14 @@
 ; - The argument Y may be nil or a list containing nil
 
 (defun xmember (X Y)
-	; check if X is even a list --VOID not allowed to use listp
-	
 	; check if the list is empty
-	(if (null X)
+	(cond
 		; if the list is empty it clearly is not in the list
-		NIL
+		((null X) NIL)
 		; check if the first element is equal to the requested item
-		(if (equal (car X) Y)
-			; if so return true
-			T
-			; else call function again to compare next element
-			(xmember (cdr X) Y)
-		)
+		((equal (car X) Y) T)
+		; else call function again to compare next element
+		(T (xmember (cdr X) Y))
 	)
 )
 
@@ -57,7 +52,6 @@
 
 ;QUESTION 4
 ; Create a lisp function:
-; - 	(if (not (null (cdr L)))
 (defun split (L)
 	(cond 
 		((null L) (NIL NIL))
@@ -68,25 +62,33 @@
 )
 
 ;Question 6
-(defun subsetsum (S L)	
-	(cond 
-		; first condition is if the sum requested is zero then we can just return an empty list
-		;((= S 0) '())
-		((= S 0) '())
-		; if the amount is less than zero then this branch is false, since these are all positive numbers
-		((< S 0) NIL)
-		; second condition is if the list is empty then return nil
-		((and (null L) (not (= S 0))) '())
-		;third condition is check if the sum can be made by either including or excluding the element
-		(T (or (subsetsum (- S (car L)) (cdr L)) (subsetsum S (cdr L))))
+; Once an element is found in the original list that is part of the solution we can remove it from the solution to prevent duplicates, a longer list, and more importantly an incorrect solution to subsetsum
+(defun removeMatchedElement (sortedList originalElement)
+	(cond
+		; sortedList is empty and the matched element was not found return nil
+		((null sortedList) NIL)
+		; skip the matched element and return the rest of the sortedList
+		((= (car sortedList) originalElement) (cdr sortedList))
+		; not the matched element append the current element and explore the rest of the sortedList
+		(T (append (list (car sortedList)) (removeMatchedElement (cdr sortedList) originalElement)))
 	)
 )
 
-
-(defun subsetsum (S L)
-	(optimizedSubsetSum S (sort (copy-list L) #'<))
+; Assumption all of the elements in the sortedList are elements of the originalList
+(defun restoreOrder (sortedList originalList)
+	(cond
+		; First Base Case: The orignal list is now empty 
+		((null sortedList) NIL)
+		; If the original element is part of the solution then append the original element, and remove the original element from the solution
+		((xmember sortedList (car originalList))
+			(let ((originalElement (car originalList)))
+				(append (list originalElement) (restoreOrder (removeMatchedElement sortedList originalElement) (cdr originalList) ) )))
+		; Else skip the original list element since it is not in the solution
+		(T (restoreOrder sortedList (cdr originalList)))
+	)
 )
 
+; Only optimization performed is passing a sorted list, hence the new base case
 (defun optimizedSubsetSum (S L)	
 	(cond 
 		; First base case: The list is empty, therefore no elements to elimate remainder of sum.
@@ -98,11 +100,18 @@
 		(T (let ((include (optimizedSubsetSum (- S (car L)) (cdr L)))
 					(exclude (optimizedSubsetSum S (cdr L))))
 				(cond
+					; if a solution was found with the element append the element
 					((not (null include)) (append (list (car L)) include))
+					; if a solution was found without the element just explore the rest of the list
 					((not (null exclude)) exclude)
 					(T NIL)
 				)
 			)
 		)
 	)
+)
+
+; function subsetsum will attempt to find a subset of numbers in a given list that will sum up to the number requested
+(defun subsetsum (S L)
+	(restoreOrder (optimizedSubsetSum S (sort (copy-list L) #'<)) L)
 )
